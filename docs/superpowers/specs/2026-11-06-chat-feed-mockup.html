@@ -1,0 +1,505 @@
+<title>Drop Feed Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  --ground: #eef1f0;
+  --panel: #ffffff;
+  --feed: #f6f8f7;
+  --ink: #1b2422;
+  --muted: #5f6d69;
+  --line: #d9e0dd;
+  --accent: #0f766e;
+  --accent-ink: #ffffff;
+  --bubble: #dff1ec;
+  --bubble-line: #c3e3da;
+  --code-bg: #eef2f1;
+  --danger: #b42318;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #0e1312;
+    --panel: #151b1a;
+    --feed: #111716;
+    --ink: #e3ebe8;
+    --muted: #93a39e;
+    --line: #26302e;
+    --accent: #2bb3a3;
+    --accent-ink: #062320;
+    --bubble: #173330;
+    --bubble-line: #22453f;
+    --code-bg: #1b2321;
+    --danger: #f97066;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #0e1312;
+  --panel: #151b1a;
+  --feed: #111716;
+  --ink: #e3ebe8;
+  --muted: #93a39e;
+  --line: #26302e;
+  --accent: #2bb3a3;
+  --accent-ink: #062320;
+  --bubble: #173330;
+  --bubble-line: #22453f;
+  --code-bg: #1b2321;
+  --danger: #f97066;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.45;
+  padding: 24px 16px 48px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 20px; }
+h1 { font-size: 22px; font-weight: 600; margin: 0; text-wrap: balance; }
+.lede { color: var(--muted); margin: 4px 0 0; max-width: 65ch; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.seg-label { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-right: 8px; }
+.seg button {
+  font: inherit; font-size: 14px; border: 0; background: transparent; color: var(--ink);
+  padding: 7px 14px; cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- app frame ---------- */
+.stage { display: flex; justify-content: center; }
+.app {
+  position: relative;
+  width: 100%;
+  max-width: 980px;
+  height: 660px;
+  display: flex; flex-direction: column;
+  background: var(--feed);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: max-width .2s ease;
+}
+.app.phone { max-width: 390px; height: 760px; border-radius: 28px; }
+@media (prefers-reduced-motion: reduce) { .app { transition: none; } }
+
+.topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.brand { font-weight: 600; font-size: 16px; flex: 1; }
+.brand small { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 6px; }
+.icon-btn {
+  width: 36px; height: 36px; display: grid; place-items: center;
+  border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer;
+}
+.icon-btn:hover { background: var(--code-bg); color: var(--ink); }
+.icon-btn svg { width: 20px; height: 20px; }
+
+.feed { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.day {
+  align-self: center; font-size: 12px; color: var(--muted);
+  background: var(--panel); border: 1px solid var(--line);
+  padding: 2px 10px; border-radius: 999px; margin: 6px 0;
+}
+
+/* entry, common */
+.entry { position: relative; max-width: 100%; }
+.entry .meta {
+  display: flex; gap: 8px; align-items: center; justify-content: flex-end;
+  font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums;
+  margin-top: 4px;
+}
+.entry .kind { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.entry .text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.entry a { color: var(--accent); overflow-wrap: anywhere; }
+.entry img.shot { display: block; max-width: 100%; max-height: 300px; border-radius: 8px; }
+.entry pre {
+  margin: 0; font-family: var(--mono); font-size: 13px; line-height: 1.5;
+  background: var(--code-bg); border-radius: 6px; padding: 10px 12px;
+  overflow-x: auto; white-space: pre;
+}
+.md h3 { margin: 0 0 4px; font-size: 15px; }
+.md ul { margin: 4px 0 0; padding-left: 20px; }
+.md code { font-family: var(--mono); font-size: 13px; background: var(--code-bg); padding: 0 4px; border-radius: 4px; }
+.domain { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+
+.file { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.file .ext {
+  flex: none; width: 44px; height: 44px; border-radius: 8px;
+  display: grid; place-items: center;
+  background: var(--accent); color: var(--accent-ink);
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+}
+.file .fname { font-weight: 500; overflow-wrap: anywhere; }
+.file .fsize { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* actions row */
+.actions {
+  display: none; gap: 2px; margin-top: 6px; justify-content: flex-end; flex-wrap: wrap;
+}
+.entry:hover .actions, .entry:focus-within .actions, .entry.open .actions { display: flex; }
+.actions button {
+  font: inherit; font-size: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  padding: 3px 9px; border-radius: 6px; cursor: pointer;
+}
+.actions button.del { color: var(--danger); }
+.actions button:hover { border-color: var(--accent); }
+
+/* layout A: bubbles */
+.layout-a .entry {
+  align-self: flex-end; max-width: 78%;
+  background: var(--bubble); border: 1px solid var(--bubble-line);
+  padding: 8px 10px 6px; border-radius: 12px 12px 4px 12px;
+}
+.layout-a .entry.media { padding: 4px 4px 6px; }
+.layout-a .entry.media .meta { padding-right: 6px; }
+
+/* layout B: stream */
+.layout-b .feed { gap: 0; padding: 8px 0; }
+.layout-b .day { margin: 12px 0 6px; }
+.layout-b .entry {
+  padding: 10px 16px 8px 72px;
+  border-bottom: 1px solid var(--line);
+}
+.layout-b .entry:hover { background: var(--panel); }
+.layout-b .entry .meta { position: absolute; left: 16px; top: 12px; margin: 0; justify-content: flex-start; flex-direction: column; align-items: flex-start; gap: 0; }
+.layout-b .entry img.shot { max-height: 260px; }
+.layout-b .actions { justify-content: flex-start; }
+.phone.layout-b .entry { padding-left: 16px; }
+.phone.layout-b .entry .meta { position: static; flex-direction: row; gap: 8px; margin-bottom: 4px; }
+.phone.layout-b .entry { display: flex; flex-direction: column; }
+.phone.layout-b .entry .meta { order: -1; }
+
+/* composer */
+.composer {
+  background: var(--panel); border-top: 1px solid var(--line);
+  padding: 10px 12px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  display: grid; gap: 8px;
+}
+.staged { display: flex; gap: 8px; overflow-x: auto; }
+.staged:empty { display: none; }
+.chip {
+  position: relative; flex: none;
+  width: 72px; height: 72px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--code-bg); overflow: hidden;
+  display: grid; place-items: center; text-align: center;
+  font-family: var(--mono); font-size: 10px; color: var(--muted); padding: 4px;
+}
+.chip img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.chip .x {
+  position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%;
+  border: 0; background: rgba(0,0,0,.6); color: #fff; font-size: 13px; line-height: 20px; cursor: pointer; padding: 0;
+}
+.row { display: flex; gap: 8px; align-items: flex-end; }
+.row textarea {
+  flex: 1; resize: none; font: inherit; color: var(--ink);
+  background: var(--feed); border: 1px solid var(--line); border-radius: 18px;
+  padding: 8px 14px; min-height: 40px; max-height: 160px; line-height: 1.45;
+}
+.round {
+  flex: none; width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center; border: 0; cursor: pointer;
+}
+.round svg { width: 20px; height: 20px; }
+.plus { background: var(--code-bg); color: var(--ink); }
+.send { background: var(--accent); color: var(--accent-ink); }
+.send:disabled { opacity: .4; cursor: default; }
+.hint { font-size: 12px; color: var(--muted); }
+.phone .hint { display: none; }
+
+.dropzone {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border: 3px dashed var(--accent); border-radius: inherit;
+  font-size: 18px; font-weight: 600; color: var(--ink);
+  pointer-events: none;
+}
+
+/* notes */
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.note { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.note h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+.note ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.note p { margin: 0; }
+#cliplog { font-family: var(--mono); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); margin-top: 8px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Drop Feed mockup</h1>
+    <p class="lede">The start page as a chat with yourself. The example entries are made up. The input bar works: paste a screenshot with Ctrl+V, drop files onto the window, or use +. Sending adds the entries to this mockup only, nothing is uploaded.</p>
+  </header>
+
+  <div class="controls">
+    <div><span class="seg-label">Feed style</span>
+      <span class="seg" role="group" aria-label="Feed style">
+        <button id="opt-a" aria-pressed="true">A · Bubbles</button>
+        <button id="opt-b" aria-pressed="false">B · Stream</button>
+      </span>
+    </div>
+    <div><span class="seg-label">Screen</span>
+      <span class="seg" role="group" aria-label="Screen size">
+        <button id="w-desk" aria-pressed="true">Desktop</button>
+        <button id="w-phone" aria-pressed="false">Phone</button>
+      </span>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="app layout-a" id="app">
+      <div class="topbar">
+        <div class="brand">microbin<small>127 entries</small></div>
+        <button class="icon-btn" title="Search" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        </button>
+        <button class="icon-btn" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        </button>
+      </div>
+
+      <div class="feed" id="feed"></div>
+
+      <div class="composer">
+        <div class="staged" id="staged"></div>
+        <div class="row">
+          <button class="round plus" id="plus" title="Add files" aria-label="Add files">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <textarea id="input" rows="1" placeholder="Paste, type, or drop anything"></textarea>
+          <button class="round send" id="send" title="Send" aria-label="Send" disabled>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4 21 12 3.4 3.6l-.01 6.53L15 12 3.39 13.87z"/></svg>
+          </button>
+        </div>
+        <div class="hint">Enter sends · Shift+Enter for a new line · each file becomes its own entry</div>
+        <input type="file" id="picker" multiple hidden>
+      </div>
+      <div class="dropzone" id="dropzone" hidden>Drop to add</div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note">
+      <h2>What changed from today</h2>
+      <ul>
+        <li>The start page is the feed: newest at the bottom, scroll up for older.</li>
+        <li>All options (expiry, burn after, privacy, syntax) moved to Settings. Defaults: never expires, no burn, public.</li>
+        <li>Text, links, screenshots and files each become their own entry.</li>
+        <li>Pasted or dropped files show as thumbnails above the input before you send.</li>
+        <li>Actions per entry (copy, open, QR, short link, delete) appear on hover, or on tap on the phone.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h2>Clipboard check</h2>
+      <p>Paste a screenshot into the input above. This shows what your browser handed over, which tells us why paste fails in the current app.</p>
+      <div id="cliplog">Nothing pasted yet.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const app = document.getElementById('app');
+  const feed = document.getElementById('feed');
+  const input = document.getElementById('input');
+  const send = document.getElementById('send');
+  const stagedEl = document.getElementById('staged');
+  const picker = document.getElementById('picker');
+  const dropzone = document.getElementById('dropzone');
+  const cliplog = document.getElementById('cliplog');
+  let staged = [];
+
+  // ---- sample screenshot (drawn, not a real one) ----
+  function sampleShot() {
+    const c = document.createElement('canvas');
+    c.width = 360; c.height = 640;
+    const g = c.getContext('2d');
+    g.fillStyle = '#1e293b'; g.fillRect(0, 0, 360, 640);
+    g.fillStyle = '#334155'; g.fillRect(0, 0, 360, 56);
+    g.fillStyle = '#e2e8f0'; g.font = '600 18px sans-serif'; g.fillText('Grafana · homelab', 16, 35);
+    const bars = [120, 180, 90, 210, 160, 240, 130, 200];
+    bars.forEach((h, i) => { g.fillStyle = i === 5 ? '#f59e0b' : '#38bdf8'; g.fillRect(24 + i * 40, 360 - h, 26, h); });
+    g.fillStyle = '#94a3b8'; g.font = '14px sans-serif';
+    g.fillText('CPU load, last 8 hours', 24, 396);
+    g.fillStyle = '#475569'; for (let i = 0; i < 4; i++) g.fillRect(24, 430 + i * 36, 312 - i * 40, 14);
+    return c.toDataURL('image/png');
+  }
+
+  const samples = [
+    { day: 'Yesterday' },
+    { kind: 'link', time: '21:14', url: 'https://github.com/szabodanika/microbin', domain: 'github.com' },
+    { kind: 'md', time: '21:40', html: '<h3>Homelab todo</h3><ul><li>Move Jellyfin to the new disk</li><li>Renew <code>wg0</code> keys</li><li>Try microbin as WhatsApp replacement</li></ul>' },
+    { day: 'Today' },
+    { kind: 'image', time: '08:02', src: sampleShot() },
+    { kind: 'link', time: '08:05', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', domain: 'youtube.com' },
+    { kind: 'code', time: '09:31', code: 'docker compose -f compose.yaml up -d\ndocker logs -f microbin' },
+    { kind: 'file', time: '10:47', name: 'nas-config-backup.tar.gz', size: '48.2 MB', ext: 'GZ' },
+  ];
+
+  const esc = s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const now = () => new Date().toTimeString().slice(0, 5);
+
+  function actionsFor(kind) {
+    const common = kind === 'image' || kind === 'file' ? ['Download', 'Open'] : ['Copy'];
+    if (kind === 'link') common.push('Open');
+    return [...common, 'QR', 'Short link', 'Delete']
+      .map(a => `<button type="button"${a === 'Delete' ? ' class="del"' : ''}>${a}</button>`).join('');
+  }
+
+  function body(e) {
+    switch (e.kind) {
+      case 'link': return `<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.url)}</a><div class="domain">${esc(e.domain)}</div>`;
+      case 'md': return `<div class="md">${e.html}</div>`;
+      case 'code': return `<pre>${esc(e.code)}</pre>`;
+      case 'image': return `<img class="shot" src="${e.src}" alt="${esc(e.alt || 'Screenshot')}">`;
+      case 'file': return `<div class="file"><div class="ext">${esc(e.ext)}</div><div><div class="fname">${esc(e.name)}</div><div class="fsize">${esc(e.size)}</div></div></div>`;
+      default: return `<div class="text">${esc(e.text)}</div>`;
+    }
+  }
+
+  function addEntry(e) {
+    if (e.day) {
+      const d = document.createElement('div');
+      d.className = 'day'; d.textContent = e.day; feed.appendChild(d); return;
+    }
+    const el = document.createElement('div');
+    el.className = 'entry' + (e.kind === 'image' ? ' media' : '');
+    el.tabIndex = 0;
+    el.innerHTML = body(e) +
+      `<div class="meta"><span class="kind">${e.kind === 'md' ? 'markdown' : e.kind}</span><span>${e.time}</span></div>` +
+      `<div class="actions">${actionsFor(e.kind)}</div>`;
+    el.addEventListener('click', ev => {
+      if (ev.target.closest('a, button')) return;
+      feed.querySelectorAll('.entry.open').forEach(o => { if (o !== el) o.classList.remove('open'); });
+      el.classList.toggle('open');
+    });
+    el.querySelector('.del').addEventListener('click', () => el.remove());
+    feed.appendChild(el);
+  }
+
+  samples.forEach(addEntry);
+  feed.scrollTop = feed.scrollHeight;
+
+  // ---- composer ----
+  function refresh() {
+    send.disabled = !input.value.trim() && staged.length === 0;
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight + 2, 160) + 'px';
+    stagedEl.innerHTML = '';
+    staged.forEach((f, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      if (f.type.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(f); img.alt = f.name;
+        chip.appendChild(img);
+      } else {
+        chip.textContent = f.name;
+      }
+      const x = document.createElement('button');
+      x.className = 'x'; x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove ' + f.name);
+      x.addEventListener('click', () => { staged = staged.filter((_, j) => j !== i); refresh(); });
+      chip.appendChild(x);
+      stagedEl.appendChild(chip);
+    });
+  }
+
+  function stage(files) {
+    for (const f of files) {
+      if (!staged.some(s => s.name === f.name && s.size === f.size && s.lastModified === f.lastModified)) staged.push(f);
+    }
+    refresh();
+  }
+
+  function fmtSize(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+  }
+
+  function submit() {
+    const text = input.value.trim();
+    if (text) {
+      const isUrl = /^https?:\/\/\S+$/.test(text);
+      addEntry(isUrl
+        ? { kind: 'link', time: now(), url: text, domain: new URL(text).hostname.replace(/^www\./, '') }
+        : { kind: 'text', time: now(), text });
+    }
+    staged.forEach(f => {
+      if (f.type.startsWith('image/')) addEntry({ kind: 'image', time: now(), src: URL.createObjectURL(f), alt: f.name });
+      else addEntry({ kind: 'file', time: now(), name: f.name, size: fmtSize(f.size), ext: (f.name.split('.').pop() || 'FILE').slice(0, 4).toUpperCase() });
+    });
+    input.value = ''; staged = []; refresh();
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  input.addEventListener('input', refresh);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey && !app.classList.contains('phone')) { e.preventDefault(); submit(); }
+  });
+  send.addEventListener('click', submit);
+  document.getElementById('plus').addEventListener('click', () => picker.click());
+  picker.addEventListener('change', () => { stage(picker.files); picker.value = ''; });
+
+  // paste: look at both clipboardData.files and items, and log what arrived
+  document.addEventListener('paste', e => {
+    const cd = e.clipboardData;
+    if (!cd) { cliplog.textContent = 'No clipboard data on the paste event.'; return; }
+    const items = Array.from(cd.items || []).map(i => `${i.kind}: ${i.type || '(no type)'}`);
+    const files = Array.from(cd.files || []);
+    const fromItems = Array.from(cd.items || []).filter(i => i.kind === 'file').map(i => i.getAsFile()).filter(Boolean);
+    const got = files.length ? files : fromItems;
+    let note = '';
+    if (!got.length && cd.types.includes('text/html')) {
+      const html = cd.getData('text/html');
+      if (/<img/i.test(html)) note = '\nThe image only came as HTML pointing to it, not as a file.';
+    }
+    cliplog.textContent =
+      'types: ' + (cd.types.join(', ') || '(none)') +
+      '\nitems: ' + (items.join(' | ') || '(none)') +
+      '\nfiles: ' + (got.map(f => `${f.name} ${f.type} ${fmtSize(f.size)}`).join(', ') || '(none)') + note;
+    if (got.length) {
+      e.preventDefault();
+      // screenshots all arrive as "image.png"; give each a unique name
+      stage(got.map(f => f.name === 'image.png'
+        ? new File([f], `screenshot-${Date.now()}.png`, { type: f.type, lastModified: Date.now() })
+        : f));
+    }
+  });
+
+  // drag and drop anywhere on the app
+  let depth = 0;
+  app.addEventListener('dragenter', e => { if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) { depth++; dropzone.hidden = false; e.preventDefault(); } });
+  app.addEventListener('dragover', e => e.preventDefault());
+  app.addEventListener('dragleave', () => { depth = Math.max(0, depth - 1); if (!depth) dropzone.hidden = true; });
+  app.addEventListener('drop', e => { e.preventDefault(); depth = 0; dropzone.hidden = true; if (e.dataTransfer?.files?.length) stage(e.dataTransfer.files); });
+
+  // ---- mockup controls ----
+  function seg(onId, offId, fn) {
+    document.getElementById(onId).addEventListener('click', () => {
+      document.getElementById(onId).setAttribute('aria-pressed', 'true');
+      document.getElementById(offId).setAttribute('aria-pressed', 'false');
+      fn();
+      feed.scrollTop = feed.scrollHeight;
+    });
+  }
+  seg('opt-a', 'opt-b', () => { app.classList.add('layout-a'); app.classList.remove('layout-b'); });
+  seg('opt-b', 'opt-a', () => { app.classList.add('layout-b'); app.classList.remove('layout-a'); });
+  seg('w-desk', 'w-phone', () => app.classList.remove('phone'));
+  seg('w-phone', 'w-desk', () => app.classList.add('phone'));
+  refresh();
+})();
+</script>
