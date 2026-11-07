@@ -11,6 +11,7 @@ use super::entry::{
 
 const DB_FILE: &str = "feed.sqlite";
 const FILES_DIR: &str = "feed_files";
+const TEMP_DIR: &str = "tmp";
 const DEFAULT_EXPIRY_KEY: &str = "default_expiry";
 
 const ENTRY_COLUMNS: &str = "id, kind, text, file_name, file_size, created, expires";
@@ -126,6 +127,11 @@ fn remove_dir_if_present(dir: &Path) -> io::Result<()> {
         Err(e) if e.kind() != io::ErrorKind::NotFound => Err(e),
         _ => Ok(()),
     }
+}
+
+/// Where uploads wait until they are complete. Not an integer, so it never collides with an entry.
+pub fn temp_dir(data_dir: &Path) -> PathBuf {
+    data_dir.join(FILES_DIR).join(TEMP_DIR)
 }
 
 /// Escapes `%`, `_` and `\` so user input only ever matches literally.
