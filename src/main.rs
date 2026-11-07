@@ -20,6 +20,7 @@ use std::sync::Mutex;
 
 pub mod args;
 pub mod pasta;
+pub mod feed;
 
 pub mod util {
     pub mod animalnumbers;
