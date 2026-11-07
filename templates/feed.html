@@ -1,5 +1,5 @@
 {% extends "feed_base.html" %}
-{% block body_attrs %} class="app" data-seq="{{ seq }}"{{ around_attr|safe }}{% endblock %}
+{% block body_attrs %} class="app" data-seq="{{ seq }}" data-max-file-bytes="{{ max_file_bytes }}"{{ around_attr|safe }}{% endblock %}
 {% block content %}
 <header class="topbar">
   <div class="brand">{{ title }} <small id="count">{{ count }}</small></div>
@@ -28,6 +28,7 @@
     </button>
     <input id="picker" type="file" multiple hidden>
   </div>
+  <div id="composer-status" class="composer-status" role="status" hidden></div>
   <div id="composer-error" class="composer-error" role="alert" hidden></div>
 </footer>
 <div id="dropzone" class="dropzone" hidden>Drop to add</div>

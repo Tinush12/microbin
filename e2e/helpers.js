@@ -78,11 +78,12 @@ class Server {
 }
 
 const test = base.test.extend({
-  server: async ({}, use) => {
+  maxFileMb: [2048, { option: true }],
+  server: async ({ maxFileMb }, use) => {
     const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'microbin-e2e-'));
     const port = await freePort();
     const binary = process.env.MICROBIN_BIN || DEFAULT_BINARY;
-    const child = spawn(binary, ['--data-dir', dataDir, '--port', String(port), '--bind', '127.0.0.1'], {
+    const child = spawn(binary, ['--data-dir', dataDir, '--port', String(port), '--bind', '127.0.0.1', '--max-file-size-mb', String(maxFileMb)], {
       stdio: 'ignore',
     });
     const url = `http://127.0.0.1:${port}`;

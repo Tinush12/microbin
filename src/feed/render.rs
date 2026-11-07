@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use bytesize::ByteSize;
 use html_escape::{encode_double_quoted_attribute, encode_text};
-use pulldown_cmark::{html, Event, Options, Parser};
+use pulldown_cmark::{html, CowStr, Event, Options, Parser};
 use serde::Serialize;
 
 use super::entry::{link_domain, Entry, EntryKind, StoredFile};
@@ -58,11 +58,26 @@ fn sanitize(unsafe_html: &str) -> String {
         .to_string()
 }
 
+/// Raw HTML in a note is shown literally, line by line, as the text the person pasted.
+fn literal_html(raw: &str) -> Vec<Event<'static>> {
+    raw.split_inclusive('\n')
+        .flat_map(|line| {
+            let text = Event::Text(CowStr::from(line.trim_end_matches('\n').to_string()));
+            if line.ends_with('\n') {
+                vec![text, Event::HardBreak]
+            } else {
+                vec![text]
+            }
+        })
+        .collect()
+}
+
 pub fn markdown_to_html(text: &str) -> String {
     let options = Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH;
-    let events = Parser::new_ext(text, options).map(|event| match event {
-        Event::SoftBreak => Event::HardBreak,
-        other => other,
+    let events = Parser::new_ext(text, options).flat_map(|event| match event {
+        Event::SoftBreak => vec![Event::HardBreak],
+        Event::Html(raw) | Event::InlineHtml(raw) => literal_html(&raw),
+        other => vec![other],
     });
     let mut rendered = String::new();
     html::push_html(&mut rendered, events);
@@ -142,15 +157,40 @@ mod tests {
     #[test]
     fn markdown_is_sanitized() {
         let combined = markdown_to_html("<script>alert(1)</script>[x](javascript:alert(1)) <img src=x onerror=alert(1)>");
-        assert!(!combined.contains("<script") && !combined.contains("href") && !combined.contains("onerror"));
-        for hostile in [
-            "[x](javascript:alert(1))",
-            "<a href=\"javascript:alert(1)\">y</a>",
-            "![x](javascript:alert(1))",
-            "<img src=x onerror=alert(1)>",
-        ] {
+        assert!(!combined.contains("<script") && !combined.contains("<img") && !combined.contains("href"));
+        for hostile in ["[x](javascript:alert(1))", "![x](javascript:alert(1))"] {
             let h = markdown_to_html(hostile);
-            assert!(!h.contains("javascript:") && !h.contains("onerror"), "{hostile} -> {h}");
+            assert!(!h.contains("javascript:"), "{hostile} -> {h}");
+        }
+    }
+
+    #[test]
+    fn raw_html_is_shown_as_text() {
+        let shown = [
+            ("Use Vec<String> and more", "Vec&lt;String&gt; and more"),
+            ("<script>alert(1)</script>", "&lt;script&gt;alert(1)&lt;/script&gt;"),
+            ("<!-- todo -->", "&lt;!-- todo --&gt;"),
+            ("<b>raw</b>", "&lt;b&gt;raw&lt;/b&gt;"),
+            (r#"<img src="http://x/y.png">"#, "&lt;img src="),
+        ];
+        for (input, expected) in shown {
+            let h = markdown_to_html(input);
+            assert!(h.contains(expected), "{input} -> {h}");
+            assert!(!h.contains("<script") && !h.contains("<b>") && !h.contains("<img"), "{input} -> {h}");
+        }
+    }
+
+    #[test]
+    fn multi_line_html_keeps_its_lines() {
+        let h = markdown_to_html("<div>\nhello\n</div>");
+        assert!(h.replace('\n', "").contains("&lt;div&gt;<br>hello<br>&lt;/div&gt;"), "{h}");
+    }
+
+    #[test]
+    fn sanitizer_is_a_second_layer() {
+        let h = sanitize(r#"<script>x</script><a href="javascript:alert(1)" onclick="y">z</a><code class="evil">a</code><code class="language-x evil">b</code>"#);
+        for banned in ["<script", "javascript:", "onclick", "class="] {
+            assert!(!h.contains(banned), "{banned} in {h}");
         }
     }
 
@@ -158,12 +198,6 @@ mod tests {
     fn code_fences_keep_language_class() {
         let h = markdown_to_html("```rust\nfn main() {}\n```");
         assert!(h.contains(r#"<code class="language-rust">"#));
-    }
-
-    #[test]
-    fn only_language_classes_survive() {
-        let h = markdown_to_html(r#"<code class="evil">a</code> <code class="language-x evil">b</code>"#);
-        assert!(!h.contains("class="), "{h}");
     }
 
     #[test]

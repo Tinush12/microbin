@@ -28,6 +28,7 @@ struct FeedPage<'a> {
     count: i64,
     seq: i64,
     around_attr: String,
+    max_file_bytes: u64,
 }
 
 #[derive(Template)]
@@ -113,6 +114,7 @@ pub async fn feed(
         count,
         seq,
         around_attr: params.around.map_or(String::new(), |id| format!(" data-around=\"{id}\"")),
+        max_file_bytes: state.config.max_file_bytes,
     })
 }
 
@@ -317,6 +319,14 @@ mod tests {
             assert!(body.contains(needle), "{needle}");
         }
         assert!(!body.contains("data-around"));
+    }
+
+    #[actix_web::test]
+    async fn feed_page_tells_the_composer_the_file_limit() {
+        let (_dir, state) = app_state(1_000);
+        let app = test::init_service(App::new().app_data(state.clone()).configure(configure)).await;
+        let body = test::call_and_read_body(&app, test::TestRequest::get().uri("/").to_request()).await;
+        assert!(String::from_utf8_lossy(&body).contains("data-max-file-bytes=\"1000\""));
     }
 
     #[actix_web::test]

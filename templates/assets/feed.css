@@ -231,3 +231,4 @@ button:focus-visible, textarea:focus-visible, select:focus-visible, input:focus-
 .hljs-meta, .hljs-selector-class, .hljs-selector-id, .hljs-selector-attr, .hljs-selector-pseudo, .hljs-link, .hljs-addition { color: var(--token-meta); }
 .hljs-emphasis { font-style: italic; }
 .hljs-strong { font-weight: 700; }
+.composer-status { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }

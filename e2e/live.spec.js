@@ -201,3 +201,15 @@ test('a live update leaves an open image row alone', async ({ page, server }) =>
   await expect(page.locator(`#e-${file.id}`)).toHaveAttribute('data-mark', 'same-element');
   await expect(page.locator(`#e-${other.id}`)).toHaveCount(1);
 });
+
+test('a poll that never answers still ends in the offline marker, then recovers', async ({ page, server }) => {
+  test.setTimeout(60_000);
+  await page.goto(server.url);
+  await expect(page.locator('#offline')).toBeHidden();
+  await page.route('**/api/changes**', () => { /* never answered, as on a dead network path */ });
+  await expect(page.locator('#offline')).toBeVisible({ timeout: 35_000 });
+  await page.unroute('**/api/changes**');
+  const entry = await server.addText('after the outage');
+  await expect(page.locator(`#e-${entry.id}`)).toHaveCount(1, { timeout: 10_000 });
+  await expect(page.locator('#offline')).toBeHidden();
+});

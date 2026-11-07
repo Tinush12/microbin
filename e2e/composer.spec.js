@@ -190,3 +190,76 @@ test('the text box grows with its content, up to a limit', async ({ page, server
   await input.fill('');
   expect((await input.boundingBox()).height).toBe(small);
 });
+
+async function holdNextSend(page) {
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  await page.route('**/api/entries', async (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    await gate;
+    return route.continue();
+  });
+  return release;
+}
+
+test('what is added while a send is running stays in the composer', async ({ page, server }) => {
+  await page.goto(server.url);
+  const release = await holdNextSend(page);
+  await page.locator('#picker').setInputFiles({ name: 'first.txt', mimeType: 'text/plain', buffer: Buffer.from('1') });
+  await page.locator('#input').fill('first');
+  await page.locator('#input').press('Enter');
+  await expect(page.locator('#send')).toBeDisabled();
+  await page.locator('#input').pressSequentially(' second thought');
+  await page.locator('#picker').setInputFiles({ name: 'late.txt', mimeType: 'text/plain', buffer: Buffer.from('2') });
+  await expect(page.locator('.chip')).toHaveCount(2);
+  release();
+  await expect(page.locator('.entry')).toHaveCount(2);
+  await expect(page.locator('#input')).toHaveValue('second thought');
+  await expect(page.locator('.chip')).toHaveCount(1);
+  await expect(page.locator('.chip')).toContainText('late.txt');
+  await expect(page.locator('#send')).toBeEnabled();
+  const sent = await server.list();
+  expect(sent.map((entry) => entry.text || entry.file_name)).toEqual(['first', 'first.txt']);
+});
+
+test('text replaced while a send is running is kept whole', async ({ page, server }) => {
+  await page.goto(server.url);
+  const release = await holdNextSend(page);
+  await page.locator('#input').fill('first');
+  await page.locator('#input').press('Enter');
+  await expect(page.locator('#send')).toBeDisabled();
+  await page.locator('#input').fill('something else');
+  release();
+  await expect(page.locator('.entry')).toHaveCount(1);
+  await expect(page.locator('#input')).toHaveValue('something else');
+});
+
+test('a running send says so, and the note goes away after', async ({ page, server }) => {
+  await page.goto(server.url);
+  await expect(page.locator('#composer-status')).toBeHidden();
+  const release = await holdNextSend(page);
+  await page.locator('#input').fill('slow');
+  await page.locator('#send').click();
+  await expect(page.locator('#composer-status')).toContainText('Sending');
+  release();
+  await expect(page.locator('.entry')).toHaveCount(1);
+  await expect(page.locator('#composer-status')).toBeHidden();
+});
+
+test.describe('with a 1 MB file limit', () => {
+  test.use({ maxFileMb: 1 });
+
+  test('a file over the limit is refused right away, others stay', async ({ page, server }) => {
+    let posted = false;
+    page.on('request', (request) => { if (request.method() === 'POST') posted = true; });
+    await page.goto(server.url);
+    await page.locator('#picker').setInputFiles([
+      { name: 'big.bin', mimeType: 'application/octet-stream', buffer: Buffer.alloc(1024 * 1024 + 1) },
+      { name: 'ok.bin', mimeType: 'application/octet-stream', buffer: Buffer.alloc(1024 * 1024) },
+    ]);
+    await expect(page.locator('#composer-error')).toHaveText('big.bin is larger than 1 MB');
+    await expect(page.locator('.chip')).toHaveCount(1);
+    await expect(page.locator('.chip')).toContainText('ok.bin');
+    expect(posted).toBe(false);
+  });
+});

@@ -4,9 +4,9 @@ Plan: `2026-11-06-chat-feed.md`, Task 11.
 
 ## Automated (2026-11-07)
 
-- `cargo test`: 56 passed.
+- `cargo test`: 59 passed.
 - `cargo clippy --all-targets -- -D warnings`: clean.
-- Playwright against the release binary: all specs passed.
+- Playwright against the release binary: 51 passed.
 - Live server: 6 MB upload accepted; 30 MB rejected with the file name and limit in a 413 over a real
   socket, with no temp files left and no entries created; basic auth gives 401 without credentials.
 

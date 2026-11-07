@@ -4,6 +4,9 @@
   const CLIPBOARD_IMAGE_NAME = 'image.png';
   const MAX_INPUT_HEIGHT_PX = 160;
   const UNREACHABLE_MESSAGE = 'Could not reach the server';
+  const BYTES_PER_MB = 1024 * 1024;
+  const PERCENT = 100;
+  const CREATED = 201;
 
   const input = document.getElementById('input');
   const sendButton = document.getElementById('send');
@@ -12,6 +15,8 @@
   const strip = document.getElementById('staged');
   const dropzone = document.getElementById('dropzone');
   const errorLine = document.getElementById('composer-error');
+  const statusLine = document.getElementById('composer-status');
+  const maxFileBytes = Number(document.body.dataset.maxFileBytes);
 
   const isTouch = () => window.matchMedia('(pointer: coarse)').matches;
 
@@ -72,17 +77,23 @@
   }
 
   function stage(files) {
-    const incoming = files.reduce((kept, file) => (
+    const fits = files.filter((file) => file.size <= maxFileBytes);
+    const refused = files.filter((file) => file.size > maxFileBytes);
+    const limitMb = Math.ceil(maxFileBytes / BYTES_PER_MB);
+    const incoming = fits.reduce((kept, file) => (
       [...staged.map((item) => item.file), ...kept].some((other) => isSameFile(other, file)) ? kept : [...kept, file]
     ), []);
-    if (incoming.length === 0) return;
     const items = incoming.map((file) => ({
       file,
       previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
     }));
     staged = [...staged, ...items];
-    showError('');
-    renderStrip();
+    if (refused.length > 0) {
+      showError(refused.map((file) => `${file.name} is larger than ${limitMb} MB`).join('. '));
+    } else if (items.length > 0) {
+      showError('');
+    }
+    if (items.length > 0) renderStrip();
   }
 
   function clipboardFiles(clipboard) {
@@ -156,24 +167,25 @@
     stage(Array.from(event.dataTransfer.files));
   }
 
-  function clearComposer() {
-    staged.forEach((item) => {
+  // Things added while the send was running were not part of it, so they stay.
+  function clearSent(sentItems, sentText) {
+    sentItems.forEach((item) => {
       if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
     });
-    staged = [];
-    input.value = '';
+    staged = staged.filter((item) => !sentItems.includes(item));
+    if (input.value.startsWith(sentText)) input.value = input.value.slice(sentText.length).trimStart();
     fitInputToContent();
     renderStrip();
   }
 
-  async function serverMessage(response) {
+  function serverMessage(request) {
     try {
-      const body = await response.json();
-      if (body.error) return body.error;
-    } catch (error) {
-      console.error(error);
+      const { error } = JSON.parse(request.responseText);
+      if (error) return error;
+    } catch (parseError) {
+      console.error(parseError);
     }
-    return `Could not send (error ${response.status})`;
+    return `Could not send (error ${request.status})`;
   }
 
   function showSentEntries(entries) {
@@ -187,29 +199,47 @@
     window.Feed.refresh();
   }
 
-  async function postForm(form) {
-    const response = await fetch('/api/entries', { method: 'POST', body: form });
-    if (response.status !== 201) throw new Error(await serverMessage(response));
-    return (await response.json()).entries;
+  function showProgress(event) {
+    const percent = event.lengthComputable ? ` ${Math.floor((event.loaded / event.total) * PERCENT)}%` : '';
+    statusLine.textContent = `Sending…${percent}`;
+  }
+
+  // XMLHttpRequest rather than fetch, because only it reports upload progress.
+  function postForm(form) {
+    return new Promise((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open('POST', '/api/entries');
+      request.upload.addEventListener('progress', showProgress);
+      request.addEventListener('load', () => {
+        if (request.status === CREATED) resolve(JSON.parse(request.responseText).entries);
+        else reject(new Error(serverMessage(request)));
+      });
+      request.addEventListener('error', () => reject(new Error(UNREACHABLE_MESSAGE)));
+      request.send(form);
+    });
   }
 
   async function send() {
     if (sendButton.disabled) return;
+    const sentItems = staged;
+    const sentText = input.value;
     const form = new FormData();
-    if (input.value.trim() !== '') form.append('text', input.value);
-    staged.forEach((item) => form.append('file', item.file, item.file.name));
+    if (sentText.trim() !== '') form.append('text', sentText);
+    sentItems.forEach((item) => form.append('file', item.file, item.file.name));
     sending = true;
     refreshSendButton();
     showError('');
+    statusLine.textContent = 'Sending…';
+    statusLine.hidden = false;
     try {
       const entries = await postForm(form);
-      clearComposer();
+      clearSent(sentItems, sentText);
       showSentEntries(entries);
     } catch (error) {
-      // fetch rejects with a TypeError when the request never got an answer.
-      showError(error instanceof TypeError ? UNREACHABLE_MESSAGE : error.message);
+      showError(error.message);
     } finally {
       sending = false;
+      statusLine.hidden = true;
       refreshSendButton();
     }
   }

@@ -5,6 +5,7 @@
   const PINNED_MARGIN_PX = 40;
   const HIGHLIGHT_MS = 2000;
   const POLL_INTERVAL_MS = 2000;
+  const POLL_TIMEOUT_MS = 5000;
   const MARKER_REFRESH_MS = 60000;
   const FAILURES_BEFORE_OFFLINE = 3;
   const SECONDS_PER_MINUTE = 60;
@@ -293,7 +294,9 @@
     if (poll.running || document.visibilityState !== 'visible') return;
     poll.running = true;
     try {
-      const response = await fetch(`/api/changes?since=${Feed.lastSeq}`);
+      const response = await fetch(`/api/changes?since=${Feed.lastSeq}`, {
+        signal: AbortSignal.timeout(POLL_TIMEOUT_MS),
+      });
       if (!response.ok) throw new Error(`could not load changes: ${response.status}`);
       const changes = await response.json();
       Feed.lastSeq = changes.seq;
