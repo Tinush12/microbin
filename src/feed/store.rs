@@ -368,6 +368,14 @@ impl Store {
         Ok(count)
     }
 
+    pub fn storage_used(&self, now: i64) -> StoreResult<u64> {
+        let sql = format!("SELECT COALESCE(SUM(file_size), 0) FROM entries WHERE {LIVE}");
+        let used = self
+            .conn
+            .query_row(&sql, &[(":now", &now as &dyn ToSql)], |row| row.get(0))?;
+        Ok(used)
+    }
+
     pub fn search(&self, query: &str, limit: usize, now: i64) -> StoreResult<Vec<Entry>> {
         let sql = format!(
             "SELECT {ENTRY_COLUMNS} FROM entries

@@ -1,0 +1,23 @@
+{% extends "feed_base.html" %}
+{% block content %}
+<header class="topbar">
+  <div class="brand"><a href="/">{{ title }}</a></div>
+</header>
+<main class="page">
+  <h1>Settings</h1>
+  <form class="settings-form" method="post" action="/settings">
+    <label for="default_expiry">Default expiry for new entries</label>
+    <select id="default_expiry" name="default_expiry">
+      {% for option in options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Save</button>
+  </form>
+  <dl class="facts">
+    <dt>Version</dt><dd>{{ version }}</dd>
+    <dt>Entries</dt><dd>{{ count }}</dd>
+    <dt>Storage used</dt><dd>{{ storage }}</dd>
+  </dl>
+  <nav class="page-actions"><a href="/">Back to feed</a></nav>
+</main>
+{% endblock %}

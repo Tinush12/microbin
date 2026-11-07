@@ -1,0 +1,11 @@
+{% extends "feed_base.html" %}
+{% block content %}
+<header class="topbar">
+  <div class="brand"><a href="/">{{ title }}</a></div>
+</header>
+<main class="page qr-page">
+  <a class="qr" href="{{ target_attr|safe }}">{{ svg|safe }}</a>
+  <p class="page-meta">{{ target_attr|safe }}</p>
+  <nav class="page-actions"><a href="/">Back to feed</a></nav>
+</main>
+{% endblock %}

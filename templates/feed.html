@@ -1,0 +1,33 @@
+{% extends "feed_base.html" %}
+{% block body_attrs %} class="app" data-seq="{{ seq }}"{{ around_attr|safe }}{% endblock %}
+{% block content %}
+<header class="topbar">
+  <div class="brand">{{ title }} <small id="count">{{ count }}</small></div>
+  <span id="offline" class="offline" hidden>Offline</span>
+  <button id="search-toggle" class="icon-btn" type="button" aria-label="Search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+  </button>
+  <a class="icon-btn" href="/settings" aria-label="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M4.9 4.9 7 7m10 10 2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
+  </a>
+</header>
+<main id="feed" class="feed" tabindex="-1"></main>
+<footer class="composer">
+  <div id="staged" class="staged"></div>
+  <div class="row">
+    <button id="plus" class="round plus" type="button" aria-label="Add files">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <textarea id="input" rows="1" placeholder="Paste, drop or type" aria-label="Message"></textarea>
+    <button id="send" class="round send" type="button" aria-label="Send" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
+    </button>
+    <input id="picker" type="file" multiple hidden>
+  </div>
+  <div id="composer-error" class="composer-error" role="alert" hidden></div>
+</footer>
+<div id="dropzone" class="dropzone" hidden>Drop to add</div>
+<script src="/static/highlight/highlight.min.js"></script>
+<script src="/static/feed.js"></script>
+<script src="/static/composer.js"></script>
+{% endblock %}

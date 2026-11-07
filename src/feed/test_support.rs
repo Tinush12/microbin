@@ -11,6 +11,7 @@ pub fn app_state(max_file_bytes: u64) -> (tempfile::TempDir, web::Data<FeedState
     let config = FeedConfig {
         data_dir: dir.path().to_path_buf(),
         max_file_bytes,
+        title: "microbin".to_string(),
     };
     let state = FeedState {
         store: std::sync::Mutex::new(store),

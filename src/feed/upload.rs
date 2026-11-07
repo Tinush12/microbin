@@ -3,11 +3,11 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use actix_multipart::{Field, Multipart};
-use actix_web::{web, HttpResponse};
+use actix_web::{web, HttpRequest, HttpResponse};
 use futures::TryStreamExt;
 use tempfile::NamedTempFile;
 
-use super::api::{to_json, with_store, ApiError};
+use super::api::{require_same_origin, to_json, with_store, ApiError};
 use super::entry::{safe_file_name, Entry};
 use super::store::{temp_dir, Store, StoreResult};
 use super::{FeedConfig, FeedState};
@@ -18,6 +18,7 @@ const TEXT_FIELD: &str = "text";
 const FILE_FIELD: &str = "file";
 const UNNAMED_UPLOAD: &str = "file";
 
+#[derive(Clone)]
 pub struct StagedFile {
     pub name: String,
     pub path: PathBuf,
@@ -132,9 +133,11 @@ pub fn create_entries(
 }
 
 pub async fn create(
+    req: HttpRequest,
     state: web::Data<FeedState>,
     mut payload: Multipart,
 ) -> Result<HttpResponse, ApiError> {
+    require_same_origin(&req)?;
     fs::create_dir_all(temp_dir(&state.config.data_dir)).map_err(io_failure)?;
     let form = match read_form(&mut payload, &state.config).await {
         Ok(form) => form,
@@ -148,15 +151,7 @@ pub async fn create(
     if text.is_none() && form.uploads.is_empty() {
         return Err(ApiError::BadRequest("Nothing to send".to_string()));
     }
-    let staged: Vec<StagedFile> = form
-        .uploads
-        .iter()
-        .map(|u| StagedFile {
-            name: u.staged.name.clone(),
-            path: u.staged.path.clone(),
-            size: u.staged.size,
-        })
-        .collect();
+    let staged: Vec<StagedFile> = form.uploads.iter().map(|u| u.staged.clone()).collect();
     let entries = with_store(&state, |store, at| create_entries(store, text, &staged, at))?;
     Ok(HttpResponse::Created().json(serde_json::json!({ "entries": to_json(&entries) })))
 }

@@ -1,8 +1,8 @@
 use std::fmt;
 use std::sync::PoisonError;
 
-use actix_web::http::StatusCode;
-use actix_web::{web, HttpResponse, ResponseError};
+use actix_web::http::{header, StatusCode};
+use actix_web::{web, HttpRequest, HttpResponse, ResponseError};
 use serde::{Deserialize, Serialize};
 
 use super::entry::{Entry, Expiry};
@@ -18,6 +18,7 @@ const INTERNAL_ERROR_MESSAGE: &str = "Something went wrong on the server";
 pub enum ApiError {
     BadRequest(String),
     NotFound,
+    Forbidden,
     TooLarge(String),
     Internal,
 }
@@ -27,6 +28,7 @@ impl fmt::Display for ApiError {
         match self {
             ApiError::BadRequest(message) | ApiError::TooLarge(message) => f.write_str(message),
             ApiError::NotFound => f.write_str("Entry not found"),
+            ApiError::Forbidden => f.write_str("Requests from other sites are not allowed"),
             ApiError::Internal => f.write_str(INTERNAL_ERROR_MESSAGE),
         }
     }
@@ -37,6 +39,7 @@ impl ResponseError for ApiError {
         match self {
             ApiError::BadRequest(_) => StatusCode::BAD_REQUEST,
             ApiError::NotFound => StatusCode::NOT_FOUND,
+            ApiError::Forbidden => StatusCode::FORBIDDEN,
             ApiError::TooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
             ApiError::Internal => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -64,6 +67,21 @@ pub fn with_store<T>(
     let mut store = state.store.lock().unwrap_or_else(PoisonError::into_inner);
     store.sweep_expired(at)?;
     Ok(op(&mut store, at)?)
+}
+
+/// There is no login, so a page on another site must not be able to post through the browser.
+/// Requests without an Origin header (curl, scripts) did not come from a web page.
+pub fn require_same_origin(req: &HttpRequest) -> Result<(), ApiError> {
+    let Some(origin) = req.headers().get(header::ORIGIN) else {
+        return Ok(());
+    };
+    let info = req.connection_info();
+    let origin_host = origin.to_str().ok().and_then(|o| o.split_once("://")).map(|(_, host)| host);
+    if origin_host == Some(info.host()) {
+        Ok(())
+    } else {
+        Err(ApiError::Forbidden)
+    }
 }
 
 pub fn to_json(entries: &[Entry]) -> Vec<EntryJson> {
