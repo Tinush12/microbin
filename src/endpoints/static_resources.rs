@@ -16,6 +16,6 @@ fn handle_embedded_file(path: &str) -> HttpResponse {
 }
 
 #[actix_web::get("/static/{_:.*}")]
-async fn static_resources(path: web::Path<String>) -> impl Responder {
+pub async fn static_resources(path: web::Path<String>) -> impl Responder {
     handle_embedded_file(path.as_str())
 }

@@ -9,7 +9,7 @@ lazy_static! {
 }
 
 #[derive(Parser, Debug, Clone)]
-#[clap(author, version, about, long_about = None)]
+#[clap(version, about, long_about = None)]
 pub struct Args {
     #[clap(long, env = "MICROBIN_BASIC_AUTH_USERNAME")]
     pub auth_basic_username: Option<SecretArg>,

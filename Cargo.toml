@@ -3,12 +3,10 @@ name = "microbin"
 version = "2.1.4"
 edition = "2021"
 rust-version = "1.88.0"
-authors = ["Daniel Szabo <daniel@microbin.eu>"]
 license = "BSD-3-Clause"
 description = "Self-hosted, chat-style personal feed for text, links, images and files."
 readme = "README.md"
-homepage = "https://microbin.eu"
-repository = "https://github.com/szabodanika/microbin"
+repository = "https://github.com/Tinush12/microbin"
 keywords = ["pastebin", "filesharing", "microbin", "actix", "selfhosted"]
 
 
@@ -16,7 +14,7 @@ keywords = ["pastebin", "filesharing", "microbin", "actix", "selfhosted"]
 actix-files = "0.6.6"
 actix-multipart = "0.7.2"
 actix-web = { version = "4", default-features = false, features = [
-"compat","compress-brotli", "compress-gzip", "cookies", "http2", "macros", "unicode"] }
+"http2", "macros", "unicode"] }
 actix-web-httpauth = "0.8.2"
 askama = "0.10"
 bytesize = { version = "1.1", features = ["serde"] }
