@@ -5,7 +5,7 @@ edition = "2021"
 rust-version = "1.88.0"
 authors = ["Daniel Szabo <daniel@microbin.eu>"]
 license = "BSD-3-Clause"
-description = "Simple, performant, configurable, entirely self-contained Pastebin and URL shortener."
+description = "Self-hosted, chat-style personal feed for text, links, images and files."
 readme = "README.md"
 homepage = "https://microbin.eu"
 repository = "https://github.com/szabodanika/microbin"
@@ -19,58 +19,27 @@ actix-web = { version = "4", default-features = false, features = [
 "compat","compress-brotli", "compress-gzip", "cookies", "http2", "macros", "unicode"] }
 actix-web-httpauth = "0.8.2"
 askama = "0.10"
-askama-filters = { version = "0.1.3", features = ["chrono"] }
 bytesize = { version = "1.1", features = ["serde"] }
 chrono = "0.4.19"
 clap = { version = "3.1.12", features = ["derive", "env"] }
 env_logger = "0.9.0"
 futures = "0.3"
-harsh = "0.2"
 html-escape = "0.2.13"
 lazy_static = "1.4.0"
-linkify = "0.10.0"
 log = "0.4.21"
-magic-crypt = "3.1.13"
 mime_guess = "2.0.4"
-once_cell = "1.19.0"
 qrcode-generator = "4.1.9"
-rand = "0.8.5"
-reqwest = { version = "0.12", default-features = false, features = ["charset",
-"http2", "macos-system-configuration", "json", "blocking"] }
-rusqlite = { version = "0.32", features = ["bundled"], optional = true }
+rusqlite = { version = "0.32", features = ["bundled"] }
 rust-embed = "8.3.0"
 
-# The rustls-rustcrypto version must support the rustls version and the
-# rustls version must match the one expected by reqwest;
-rustls = { version = "0.23", default-features = false, features = ["custom-provider"], optional = true }
-rustls-rustcrypto = { version = "0.0.2-alpha", optional = true }
 
-percent-encoding = "2.3"
 sanitize-filename = "0.5.0"
 serde_json = "1.0.114"
 serde = { version = "1.0.197", features = ["derive"] }
-syntect = { version = "5.2.0", default-features = false }
-webpki-roots = { version = "0.26", optional = true }
-zip = "2.4.2"
 tempfile = "3.25.0"
 pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
 ammonia = "4"
-bytes = "1.11.0"
 
-[dependencies.openssl]
-version = "0.10.64"
-features = ["vendored"]
-optional = true
-
-[features]
-default = ["__default-tls", "__zstd", "__syntect-fast", "dep:rusqlite"]
-no-c-deps = ["__rustcrypto-tls", "__syntect-rust"]
-
-__default-tls = ["reqwest/default-tls", "dep:openssl"]
-__rustcrypto-tls = ["reqwest/rustls-tls-manual-roots-no-provider", "dep:rustls", "dep:rustls-rustcrypto", "webpki-roots"]
-__syntect-fast = ["syntect/default-onig"]
-__syntect-rust = ["syntect/default-fancy"]
-__zstd = ["actix-web/compress-zstd"]
 
 [profile.release]
 lto = true

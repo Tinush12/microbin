@@ -1,74 +1,47 @@
+# MicroBin feed
 
-![Screenshot](.github/index.png)
+A personal, self-hosted feed for moving things between your own devices: paste, drop or tap + to
+add text, links, images and files, and they appear on every open screen within a couple of seconds.
 
-# MicroBin
-
-![Build](https://github.com/szabodanika/microbin/actions/workflows/rust.yml/badge.svg)
-[![crates.io](https://img.shields.io/crates/v/microbin.svg)](https://crates.io/crates/microbin)
-[![Docker Image](https://github.com/szabodanika/microbin/actions/workflows/release.yml/badge.svg)](https://hub.docker.com/r/danielszabo99/microbin)
-[![Docker Pulls](https://img.shields.io/docker/pulls/danielszabo99/microbin?label=Docker%20pulls)](https://img.shields.io/docker/pulls/danielszabo99/microbin?label=Docker%20pulls)
-
-MicroBin is a super tiny, feature-rich, configurable, self-contained and self-hosted paste bin web application. It is very easy to set up and use, and will only require a few megabytes of memory and disk storage. It takes only a couple minutes to set it up, why not give it a try now?
-
-
-### Host MicroBin yourself
-
-Run our quick docker setup script ([DockerHub](https://hub.docker.com/r/danielszabo99/microbin)):
-```bash
-bash <(curl -s https://microbin.eu/docker.sh)
-```
-
-Or install it manually from [Cargo](https://crates.io/crates/microbin):
-
-```bash
-cargo install microbin;
-curl -L -O https://raw.githubusercontent.com/szabodanika/microbin/master/.env;
-source .env;
-microbin
-```
-
-On our website [microbin.eu](https://microbin.eu), you will find the following:
-
-- [Screenshots](https://microbin.eu/screenshots/)
-- [Guide and Documentation](https://microbin.eu/docs/intro)
-- [Roadmap](https://microbin.eu/roadmap)
+This is a fork of [MicroBin](https://github.com/szabodanika/microbin) rebuilt around a single
+chat-style page. It has no accounts, sharing levels, encryption or expiry by default, and it makes
+no outgoing network requests. It is meant to run behind your own network or VPN, which is what
+controls access.
 
 ## Features
 
-- Entirely self-contained executable, MicroBin is a single file!
-- Server-side and client-side E2E encryption
-- File uploads (e.g. `server.com/file/pig-dog-cat`)
-- Raw text serving (e.g. `server.com/raw/pig-dog-cat`)
-- QR code support
-- URL shortening and redirection
-- Animal names instead of random numbers for upload identifiers (64 animals)
-- Multiple attachments
-- SQLite and JSON database support
-- Private and public, editable and uneditable, automatically and never expiring uploads
-- Automatic dark mode and custom styling support with very little CSS and only vanilla JS (see [`water.css`](https://github.com/kognise/water.css))
-- And much more!
+- One page: the newest entries at the bottom, older ones load as you scroll up
+- Text is rendered as sanitized markdown; Copy always gives the raw text
+- Screenshots and images paste straight from the clipboard, files drag and drop
+- Live updates across devices, including catching up after a phone has slept
+- Search over text, links and file names
+- QR code and short link for any entry
+- Optional per-entry expiry (1 hour, 1 day, 1 week) and a default on the settings page
 
-## What is an upload?
+## Run it
 
-In MicroBin, an upload can be:
+```bash
+docker compose up --build --detach
+```
 
-- A text that you want to paste from one machine to another, e.g. some code,
-- Files that you want to share, e.g. a video that is too large for Discord, a zip with a code project in it or an image,
-- A URL redirection.
+The feed is then on port 8080. Data lives in the `microbin_data` volume: `feed.sqlite` and the
+`feed_files/` directory. Data from an older MicroBin version is left alone and is not imported.
 
-## When is MicroBin useful?
+Or run it directly with `cargo run --release -- --data-dir ./microbin_data`.
 
-You can use MicroBin:
+## Configuration
 
-- To send long texts to other people,
-- To send large files to other people,
-- To share secrets or sensitive documents securely,
-- As a URL shortener/redirect service,
-- To serve content on the web, eg . configuration files for testing, images, or any other file content using the Raw functionality,
-- To move files between your desktop and a server you access from the console,
-- As a "postbox" service where people can upload their files or texts, but they cannot see or remove what others sent you,
-- Or even to take quick notes.
+| Variable | Default | Meaning |
+|---|---|---|
+| `MICROBIN_PORT` | `8080` | Port to listen on |
+| `MICROBIN_BIND` | `0.0.0.0` | Address to listen on |
+| `MICROBIN_DATA_DIR` | `microbin_data` | Where the database and files are stored |
+| `MICROBIN_TITLE` | `microbin` | Name shown in the header |
+| `MICROBIN_THREADS` | `1` | Worker threads |
+| `MICROBIN_MAX_FILE_SIZE_MB` | `2048` | Largest file you can upload |
+| `MICROBIN_BASIC_AUTH_USERNAME` | not set | Turns on HTTP basic auth when set |
+| `MICROBIN_BASIC_AUTH_PASSWORD` | not set | Password for basic auth |
 
-...and many other things, why not get creative?
+The basic auth values can also read from a file, as `file:/path/to/secret`.
 
-MicroBin and MicroBin.eu are available under the [BSD 3-Clause License](LICENSE).
+Available under the [BSD 3-Clause License](LICENSE).

@@ -86,6 +86,10 @@ fn not_found(state: &FeedState) -> Result<HttpResponse, ApiError> {
         .body(body))
 }
 
+pub async fn fallback(state: web::Data<FeedState>) -> Result<HttpResponse, ApiError> {
+    not_found(&state)
+}
+
 /// Looks up an id from a URL. Anything that is not an integer is simply not an entry.
 fn find_entry(state: &FeedState, raw_id: &str) -> Result<Option<Entry>, ApiError> {
     match raw_id.parse::<i64>() {

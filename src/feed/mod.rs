@@ -14,7 +14,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use actix_web::web;
 
 use api::ApiError;
-use store::Store;
+use store::{clear_temp_dir, Store, StoreResult};
 
 #[derive(Clone)]
 pub struct FeedConfig {
@@ -26,6 +26,14 @@ pub struct FeedConfig {
 pub struct FeedState {
     pub store: Mutex<Store>,
     pub config: FeedConfig,
+}
+
+impl FeedState {
+    pub fn open(config: FeedConfig) -> StoreResult<FeedState> {
+        let store = Store::open(&config.data_dir)?;
+        clear_temp_dir(&config.data_dir)?;
+        Ok(FeedState { store: Mutex::new(store), config })
+    }
 }
 
 pub fn now() -> i64 {
@@ -58,4 +66,43 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
                 .route(web::get().to(pages::settings))
                 .route(web::post().to(pages::save_settings)),
         );
+}
+
+#[cfg(test)]
+mod tests {
+    use actix_web::{http::StatusCode, test, web, App};
+
+    use super::*;
+
+    #[actix_web::test]
+    async fn opening_clears_uploads_left_by_a_crash() {
+        let dir = tempfile::tempdir().unwrap();
+        let tmp = store::temp_dir(dir.path());
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(tmp.join("stale"), b"partial").unwrap();
+        let config = FeedConfig {
+            data_dir: dir.path().to_path_buf(),
+            max_file_bytes: 1,
+            title: "t".to_string(),
+        };
+        FeedState::open(config).unwrap();
+        assert!(!tmp.join("stale").exists());
+    }
+
+    #[actix_web::test]
+    async fn unknown_paths_get_the_not_found_page() {
+        let (_dir, state) = test_support::app_state(1_000);
+        let app = test::init_service(
+            App::new()
+                .app_data(state.clone())
+                .configure(configure)
+                .default_service(web::route().to(pages::fallback)),
+        )
+        .await;
+        let req = test::TestRequest::get().uri("/upload/old-name").to_request();
+        let res = test::call_service(&app, req).await;
+        assert_eq!(res.status(), StatusCode::NOT_FOUND);
+        let body = test::read_body(res).await;
+        assert!(String::from_utf8_lossy(&body).contains("Not found"));
+    }
 }

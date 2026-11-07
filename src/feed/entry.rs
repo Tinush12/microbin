@@ -35,7 +35,7 @@ impl EntryKind {
         }
     }
 
-    pub fn from_str(value: &str) -> Option<EntryKind> {
+    pub fn parse(value: &str) -> Option<EntryKind> {
         match value {
             "text" => Some(EntryKind::Text),
             "link" => Some(EntryKind::Link),

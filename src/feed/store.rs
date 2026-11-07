@@ -98,7 +98,7 @@ pub struct Store {
 
 fn entry_from_row(row: &Row) -> rusqlite::Result<Entry> {
     let kind_text: String = row.get(1)?;
-    let kind = EntryKind::from_str(&kind_text).ok_or_else(|| {
+    let kind = EntryKind::parse(&kind_text).ok_or_else(|| {
         rusqlite::Error::FromSqlConversionFailure(
             1,
             rusqlite::types::Type::Text,
@@ -132,6 +132,11 @@ fn remove_dir_if_present(dir: &Path) -> io::Result<()> {
 /// Where uploads wait until they are complete. Not an integer, so it never collides with an entry.
 pub fn temp_dir(data_dir: &Path) -> PathBuf {
     data_dir.join(FILES_DIR).join(TEMP_DIR)
+}
+
+/// Removes uploads that a crash or restart left unfinished.
+pub fn clear_temp_dir(data_dir: &Path) -> io::Result<()> {
+    remove_dir_if_present(&temp_dir(data_dir))
 }
 
 /// Escapes `%`, `_` and `\` so user input only ever matches literally.
