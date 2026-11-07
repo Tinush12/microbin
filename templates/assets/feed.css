@@ -189,3 +189,6 @@ button:focus-visible, textarea:focus-visible, select:focus-visible, input:focus-
   .entry { display: flex; flex-direction: column; padding-left: 16px; }
   .meta { position: static; order: -1; flex-direction: row; gap: 8px; margin-bottom: 4px; }
 }
+
+.body { min-width: 0; }
+.load-error { margin: auto; padding: 16px; color: var(--danger); }
