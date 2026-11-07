@@ -73,3 +73,68 @@ test('an unreachable server shows an error instead of an empty feed', async ({ p
   await page.goto(server.url);
   await expect(page.locator('#feed .load-error')).toBeVisible();
 });
+
+// Draws a real PNG in the browser, so the bytes are what a screenshot tool would produce.
+async function realPng(page, name) {
+  return page.evaluateHandle(async (fileName) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 40;
+    canvas.height = 30;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#c00';
+    context.fillRect(0, 0, 40, 30);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    return new File([blob], fileName, { type: 'image/png', lastModified: Date.now() });
+  }, name);
+}
+
+test('a pasted image shows in the strip and decodes in the feed', async ({ page, server }) => {
+  await page.goto(server.url);
+  const file = await realPng(page, 'image.png');
+  await page.evaluate((png) => {
+    const transfer = new DataTransfer();
+    transfer.items.add(png);
+    document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: transfer, bubbles: true, cancelable: true }));
+  }, file);
+  const decoded = (locator) => locator.evaluate((img) => img.decode().then(() => img.naturalWidth));
+  expect(await decoded(page.locator('.chip img'))).toBe(40);
+  await page.locator('#send').click();
+  const shown = page.locator('.entry[data-kind="image"] img.shot');
+  await expect(shown).toBeVisible();
+  expect(await decoded(shown)).toBe(40);
+  expect((await shown.boundingBox()).height).toBeGreaterThan(0);
+});
+
+const CONTRAST_SCRIPT = (root) => {
+  const channels = (color) => color.match(/[\d.]+/g).slice(0, 3).map(Number);
+  const luminance = (color) => {
+    const [r, g, b] = channels(color).map((value) => {
+      const c = value / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const ratio = (a, b) => {
+    const [high, low] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (high + 0.05) / (low + 0.05);
+  };
+  const background = getComputedStyle(root.closest('pre')).backgroundColor;
+  const tokens = [root, ...root.querySelectorAll('span')];
+  return Math.min(...tokens.map((token) => ratio(getComputedStyle(token).color, background)));
+};
+
+for (const colorScheme of ['light', 'dark']) {
+  test(`highlighted code is readable in ${colorScheme} mode`, async ({ browser, server }) => {
+    await server.addText('```bash\n# comment\nfor f in *.png; do echo "$f" 42; done\n```');
+    await server.addText('```rust\n/// doc\nfn main() { let x: u32 = 1; println!("{x}"); }\n```');
+    await server.addText('```html\n<a href="x">y</a>\n```');
+    const context = await browser.newContext({ colorScheme });
+    const page = await context.newPage();
+    await page.goto(server.url);
+    await expect(page.locator('code.hljs')).toHaveCount(3);
+    for (const code of await page.locator('code.hljs').all()) {
+      expect(await code.evaluate(CONTRAST_SCRIPT)).toBeGreaterThanOrEqual(4.5);
+    }
+    await context.close();
+  });
+}
