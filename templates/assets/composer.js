@@ -184,6 +184,7 @@
     }
     window.Feed.upsert(entries);
     window.Feed.scrollToBottom();
+    window.Feed.refresh();
   }
 
   async function postForm(form) {

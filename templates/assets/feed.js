@@ -4,13 +4,21 @@
   const LOAD_MARGIN_PX = 200;
   const PINNED_MARGIN_PX = 40;
   const HIGHLIGHT_MS = 2000;
+  const POLL_INTERVAL_MS = 2000;
+  const MARKER_REFRESH_MS = 60000;
+  const FAILURES_BEFORE_OFFLINE = 3;
+  const SECONDS_PER_MINUTE = 60;
+  const SECONDS_PER_HOUR = 3600;
+  const SECONDS_PER_DAY = 86400;
   const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   const feed = document.getElementById('feed');
   const countLabel = document.getElementById('count');
+  const offlineLabel = document.getElementById('offline');
 
   const view = { hasBefore: false, hasAfter: false, loading: false, pinned: true };
+  const poll = { running: false, failures: 0 };
 
   function rows() {
     return Array.from(feed.querySelectorAll('.entry'));
@@ -56,6 +64,14 @@
     }, null);
   }
 
+  function expiryLabel(expires, nowSeconds) {
+    const left = expires - nowSeconds;
+    if (left < SECONDS_PER_MINUTE) return 'expires in <1m';
+    if (left < SECONDS_PER_HOUR) return `expires in ${Math.floor(left / SECONDS_PER_MINUTE)}m`;
+    if (left < SECONDS_PER_DAY) return `expires in ${Math.floor(left / SECONDS_PER_HOUR)}h`;
+    return `expires in ${Math.floor(left / SECONDS_PER_DAY)}d`;
+  }
+
   function buildMeta(entry) {
     const meta = document.createElement('div');
     meta.className = 'meta';
@@ -65,6 +81,13 @@
     kind.className = 'kind';
     kind.textContent = entry.kind;
     meta.append(time, kind);
+    if (entry.expires !== null) {
+      const marker = document.createElement('span');
+      marker.className = 'expiry-marker';
+      marker.dataset.expires = entry.expires;
+      marker.textContent = expiryLabel(entry.expires, Date.now() / 1000);
+      meta.append(marker);
+    }
     return meta;
   }
 
@@ -72,15 +95,18 @@
     const row = document.createElement('article');
     row.className = 'entry';
     row.id = `e-${entry.id}`;
+    row.tabIndex = 0;
     row.dataset.id = entry.id;
     row.dataset.kind = entry.kind;
     row.dataset.created = entry.created;
+    row.dataset.expires = entry.expires === null ? '' : entry.expires;
     const body = document.createElement('div');
     body.className = 'body';
     // body_html is produced and sanitized by the server (src/feed/render.rs).
     body.innerHTML = entry.body_html;
     const actions = document.createElement('div');
     actions.className = 'actions';
+    window.FeedActions.fill(actions, entry);
     row.append(buildMeta(entry), body, actions);
     if (window.hljs) body.querySelectorAll('pre code').forEach((code) => window.hljs.highlightElement(code));
     return row;
@@ -94,10 +120,15 @@
     return (id > last && view.hasAfter) || (id < first && view.hasBefore);
   }
 
+  // Only the expiry of an entry can change. Leaving unchanged rows alone keeps images from
+  // reloading and open menus from closing when the change log reports an entry again.
   function placeRow(entry) {
     const existing = document.getElementById(`e-${entry.id}`);
     if (existing) {
-      existing.replaceWith(buildRow(entry));
+      if (existing.dataset.expires === String(entry.expires ?? '')) return;
+      const replacement = buildRow(entry);
+      replacement.classList.toggle('open', existing.classList.contains('open'));
+      existing.replaceWith(replacement);
       return;
     }
     const next = rows().find((row) => Number(row.dataset.id) > entry.id);
@@ -229,10 +260,69 @@
     loadWhatIsNeeded();
   }
 
+  function noteFailedPoll(error) {
+    console.error(error);
+    poll.failures += 1;
+    if (poll.failures >= FAILURES_BEFORE_OFFLINE) offlineLabel.hidden = false;
+  }
+
+  function noteGoodPoll() {
+    poll.failures = 0;
+    offlineLabel.hidden = true;
+  }
+
+  async function pollNow() {
+    if (poll.running || document.visibilityState !== 'visible') return;
+    poll.running = true;
+    try {
+      const response = await fetch(`/api/changes?since=${Feed.lastSeq}`);
+      if (!response.ok) throw new Error(`could not load changes: ${response.status}`);
+      const changes = await response.json();
+      Feed.lastSeq = changes.seq;
+      upsert(changes.upserted);
+      remove(changes.removed);
+      setCount(changes.count);
+      noteGoodPoll();
+    } catch (error) {
+      noteFailedPoll(error);
+    } finally {
+      poll.running = false;
+    }
+  }
+
+  function refreshExpiryMarkers() {
+    const nowSeconds = Date.now() / 1000;
+    feed.querySelectorAll('.expiry-marker').forEach((marker) => {
+      marker.textContent = expiryLabel(Number(marker.dataset.expires), nowSeconds);
+    });
+  }
+
+  function toggleRowOnTap(event) {
+    if (!window.matchMedia('(pointer: coarse)').matches) return;
+    if (event.target.closest('a, button, video')) return;
+    const row = event.target.closest('.entry');
+    if (!row) return;
+    const opening = !row.classList.contains('open');
+    feed.querySelectorAll('.entry.open').forEach((other) => other.classList.remove('open'));
+    row.classList.toggle('open', opening);
+  }
+
+  function startLiveUpdates() {
+    setInterval(pollNow, POLL_INTERVAL_MS);
+    setInterval(() => {
+      refreshExpiryMarkers();
+      refreshDayDividers();
+    }, MARKER_REFRESH_MS);
+    document.addEventListener('visibilitychange', pollNow);
+    window.addEventListener('online', pollNow);
+  }
+
   feed.addEventListener('scroll', () => {
     view.pinned = !view.hasAfter && nearBottom(PINNED_MARGIN_PX);
     loadWhatIsNeeded();
   }, { passive: true });
+
+  feed.addEventListener('click', toggleRowOnTap);
 
   // Images load after the first scroll; stay at the newest entry while they grow the page.
   feed.addEventListener('load', () => {
@@ -246,8 +336,9 @@
     setCount,
     scrollToBottom,
     holdsNewest: () => !view.hasAfter,
+    refresh: pollNow,
   };
-  Feed.ready = loadInitial().catch((error) => {
+  Feed.ready = loadInitial().then(startLiveUpdates).catch((error) => {
     console.error(error);
     showLoadError();
   });

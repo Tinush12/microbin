@@ -60,7 +60,10 @@ async fn read_text(mut field: Field) -> Result<String, ApiError> {
         }
         bytes.extend_from_slice(&chunk);
     }
-    String::from_utf8(bytes).map_err(|_| ApiError::BadRequest("Text is not valid UTF-8".to_string()))
+    let text = String::from_utf8(bytes)
+        .map_err(|_| ApiError::BadRequest("Text is not valid UTF-8".to_string()))?;
+    // Browsers turn every newline in a form value into CRLF when encoding it.
+    Ok(text.replace("\r\n", "\n"))
 }
 
 async fn save_file(mut field: Field, config: &FeedConfig) -> Result<Upload, ApiError> {
@@ -270,6 +273,15 @@ mod tests {
         let res = test::call_service(&app, post(&[Part::Text(&huge)]).to_request()).await;
         assert_eq!(res.status(), StatusCode::PAYLOAD_TOO_LARGE);
         assert_eq!(state.store.lock().unwrap().count(i64::MAX - 1).unwrap(), 0);
+    }
+
+    #[actix_web::test]
+    async fn browser_line_endings_do_not_change_the_text() {
+        let (_dir, state) = app_state(1_000);
+        let app = test::init_service(App::new().app_data(state.clone()).configure(configure)).await;
+        let res = test::call_service(&app, post(&[Part::Text("a\r\nb\nc")]).to_request()).await;
+        let body: Value = test::read_body_json(res).await;
+        assert_eq!(body["entries"][0]["text"], "a\nb\nc");
     }
 
     #[actix_web::test]
