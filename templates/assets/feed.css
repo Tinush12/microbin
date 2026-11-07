@@ -60,7 +60,7 @@ button:focus-visible, textarea:focus-visible, select:focus-visible, input:focus-
 .icon-btn:hover { background: var(--code-bg); color: var(--ink); }
 .icon-btn svg { width: 20px; height: 20px; }
 
-.feed { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 8px 0; display: flex; flex-direction: column; }
+.feed { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 8px 0; display: flex; flex-direction: column; }
 .feed > :first-child { margin-top: auto; }
 .day {
   align-self: center; flex: none; font-size: 12px; color: var(--muted);
@@ -199,3 +199,13 @@ button:focus-visible, textarea:focus-visible, select:focus-visible, input:focus-
 
 .body { min-width: 0; }
 .load-error { margin: auto; padding: 16px; color: var(--danger); }
+
+.feed-area { flex: 1; min-height: 0; position: relative; display: flex; }
+.search-input {
+  flex: 2; min-width: 0; font: inherit; color: var(--ink);
+  background: var(--feed); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px;
+}
+.results { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; background: var(--feed); }
+.results .entry { cursor: pointer; }
+.results-note { padding: 16px; color: var(--muted); text-align: center; }
+.result-date { white-space: nowrap; }

@@ -91,6 +91,29 @@
     return meta;
   }
 
+  function buildBody(entry) {
+    const body = document.createElement('div');
+    body.className = 'body';
+    // body_html is produced and sanitized by the server (src/feed/render.rs).
+    body.innerHTML = entry.body_html;
+    if (window.hljs) body.querySelectorAll('pre code').forEach((code) => window.hljs.highlightElement(code));
+    return body;
+  }
+
+  function buildResultRow(entry) {
+    const row = document.createElement('article');
+    row.className = 'entry';
+    row.dataset.id = entry.id;
+    row.dataset.kind = entry.kind;
+    const meta = buildMeta(entry);
+    const date = document.createElement('span');
+    date.className = 'result-date';
+    date.textContent = dayLabel(new Date(entry.created * 1000), new Date());
+    meta.prepend(date);
+    row.append(meta, buildBody(entry));
+    return row;
+  }
+
   function buildRow(entry) {
     const row = document.createElement('article');
     row.className = 'entry';
@@ -100,15 +123,10 @@
     row.dataset.kind = entry.kind;
     row.dataset.created = entry.created;
     row.dataset.expires = entry.expires === null ? '' : entry.expires;
-    const body = document.createElement('div');
-    body.className = 'body';
-    // body_html is produced and sanitized by the server (src/feed/render.rs).
-    body.innerHTML = entry.body_html;
     const actions = document.createElement('div');
     actions.className = 'actions';
     window.FeedActions.fill(actions, entry);
-    row.append(buildMeta(entry), body, actions);
-    if (window.hljs) body.querySelectorAll('pre code').forEach((code) => window.hljs.highlightElement(code));
+    row.append(buildMeta(entry), buildBody(entry), actions);
     return row;
   }
 
@@ -335,6 +353,7 @@
     remove,
     setCount,
     scrollToBottom,
+    buildResultRow,
     holdsNewest: () => !view.hasAfter,
     refresh: pollNow,
   };
